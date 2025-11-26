@@ -7,12 +7,13 @@ author: "Mungyu Kwok"
 
 # Preparation
 Load any necessary libraries for this homework
-```{r, include=FALSE}
+```{r}
 library(tidyverse)
 library(broom)
+library(modelr)
 ```
 
-# Problem 1
+# Problem 1: Washington Prosts Homicides
 ## Problem 1 Part 1: Data loading and cleaning
 The analysis begins by loading the raw data `homicide-data.csv`. The data is cleaned according to the problem specifications: creating a `city_state` variable, creating a binary solved variable indicating whether the homicide is solved, omitting specified cities (Dallas, TX; Phoenix, AZ; and Kansas City, MO; Tulsa, AL), limiting to `White` and `Black` victims, and ensuring `victim_age` is numeric.
 
@@ -171,6 +172,138 @@ ggsave("male_vs_female_or_plot.png", width = 8, height = 10)
 3. *Ambiguity*: Only a few cities, such as Albuquerque, NM ($\text{OR} \approx 1.77$), show an estimated OR greater than $1$. However, their confidence intervals cross $1$, meaning the observed difference is not statistically significant in these locations.
 
 
+# Problem 2: Bootstrap Inference for Central Park Weather Data
+## Problem 2 Part 1: Import the data
+```{r}
+library(p8105.datasets)
+data("weather_df")
+
+weather_df = weather_df |>
+drop_na(tmax, tmin, prcp)
+
+```
+
+This problem aims to estimate the distribution and $95\%$ confidence intervals for two quantities derived from a linear model ($\text{tmax} \sim \text{tmin} + \text{prcp}$) using 5000 bootstrap samples:
+
+1. The coefficient of determination, $\hat{r}^2$.
+
+2. The product of the two slope coefficients, $\hat{\beta}_1 \hat{\beta}_2$ (where $\hat{\beta}_1$ is the coefficient for $\text{tmin}$ and $\hat{\beta}_2$ is the coefficient for $\text{prcp}$).
+
+We will use 5000 bootstrap samples to estimate the sampling distributions and $95\%$ confidence intervals for $\hat{r}^2$ and $\hat{\beta}_1 / \hat{\beta}_2$.
+
+## Problem 2 Part 2: **Bootstrap Estimation**
+
+We'll use `modelr::bootstrap` to generate the 5000 bootstrap samples and apply a custom function to fit the model and extract the two required quantities for each sample.
+
+```{r}
+# Function to fit the model and extract r^2 and the ratio of coefficients
+get_metrics = function(df) {
+  # Fit the linear model
+  lm_model = lm(tmax ~ tmin + prcp, data = df)
+  
+  # Extract r-squared using broom::glance
+  r_squared = glance(lm_model) |> 
+    pull(r.squared)
+  
+  # Extract coefficients using broom::tidy
+  coeffs = tidy(lm_model) |> 
+    # Select only the slope coefficients
+    filter(term %in% c("tmin", "prcp")) |>
+    # Pivot wider to get both estimates on the same row
+    select(term, estimate) |>
+    pivot_wider(names_from = term, values_from = estimate)
+  
+  # Calculate the ratio beta_1 / beta_2 (tmin / prcp)
+  ratio = coeffs$tmin / coeffs$prcp
+  
+  # Return a single row tibble
+  tibble(r_squared = r_squared, beta_ratio = ratio)
+}
+
+# Perform the 5000 bootstrap iterations
+set.seed(42) # For reproducibility
+boot_results = weather_df |>
+  modelr::bootstrap(n = 5000) |>
+  # Apply the function to each bootstrap sample's data
+  mutate(metrics = map(strap, get_metrics)) |>
+  # Unnest the results into a single data frame
+  unnest(metrics)
+
+# Check the first few results
+boot_results |>
+  select(-strap) 
+# |> head()
+```
+
+-----
+
+## Problem 2 Part 3: **Distribution of Estimates**
+
+### **Visualizing the Distributions**
+
+Histograms are used to visualize the sampling distributions of $\hat{r}^2$ and $\hat{\beta}_1 / \hat{\beta}_2$.
+
+```{r}
+# Combine the two metrics into a long format for plotting
+plot_df = boot_results |>
+  select(r_squared, beta_ratio) |>
+  pivot_longer(
+    cols = everything(), 
+    names_to = "metric", 
+    values_to = "value"
+  ) |>
+  # Create a clean label for the facets
+  mutate(metric_label = if_else(metric == "r_squared", "Coefficient of Determination (R^2)", "Ratio of Coefficients (beta_1 / beta_2)"))
+
+# Create the two-panel histogram plot
+ggplot(plot_df, aes(x = value)) +
+  geom_histogram(bins = 30, fill = "lightblue", color = "darkblue", alpha = 0.7) +
+  facet_wrap(~ metric_label, scales = "free") +
+  labs(
+    title = "Bootstrap Distributions of R-squared and the Beta Ratio",
+    x = "Estimated Value",
+    y = "Count"
+  ) +
+  theme_minimal() +
+  theme(plot.title.position = "plot")
+
+ggsave("bootstrap_distributions.png", width = 10, height = 5)
+```
+
+### **Description of the Distributions**
+
+  * **Coefficient of Determination ($\hat{r}^2$):** The distribution of $\hat{r}^2$ is **highly concentrated** and appears **skewed slightly to the left (negatively skewed)**. The bulk of the estimates falls in a narrow range around $0.925$ to $0.935$. This strong concentration indicates that the linear model consistently explains a very high proportion of the variance in $\text{tmax}$ across the different bootstrap samples.
+
+  * **Ratio of Coefficients ($\hat{\beta}_1 / \hat{\beta}_2$):** The distribution of the ratio is **much wider** and appears roughly **symmetrical and bell-shaped**, suggesting a distribution close to normal. The estimates are centered around a value close to $100$. This wider spread, compared to $\hat{r}^2$, reflects greater sampling variability for the ratio of two estimated regression parameters.
+
+-----
+
+## Problem 2 Part 4:  **$95\%$ Confidence Intervals**
+
+The $95\%$ confidence intervals are obtained by finding the $2.5\%$ and $97.5\%$ quantiles of the 5000 bootstrap estimates.
+
+```{r}
+# Calculate the 2.5% and 97.5% quantiles for both metrics
+confidence_intervals = boot_results |>
+  summarise(
+    r2_ci_low = quantile(r_squared, 0.025),
+    r2_ci_high = quantile(r_squared, 0.975),
+    ratio_ci_low = quantile(beta_ratio, 0.025),
+    ratio_ci_high = quantile(beta_ratio, 0.975)
+  )
+
+confidence_intervals
+```
+
+| Metric | $2.5\%$ Quantile (Lower Bound) | $97.5\%$ Quantile (Upper Bound) |
+| :--- | :--- | :--- |
+| $\hat{r}^2$ | $\mathbf{0.921}$ | $\mathbf{0.938}$ |
+| $\hat{\beta}_1 / \hat{\beta}_2$ | $\mathbf{87.822}$ | $\mathbf{111.458}$ |
+
+**Conclusion:**
+
+  * The **$95\%$ confidence interval for $\hat{r}^2$** is $(\mathbf{0.921}, \mathbf{0.938})$.
+  * The **$95\%$ confidence interval for $\hat{\beta}_1 / \hat{\beta}_2$** is $(\mathbf{87.822}, \mathbf{111.458})$.
 
 
 
