@@ -272,9 +272,9 @@ ggsave("bootstrap_distributions.png", width = 10, height = 5)
 
 ### **Description of the Distributions**
 
-  * **Coefficient of Determination ($\hat{r}^2$):** The distribution of $\hat{r}^2$ is **highly concentrated** and appears **skewed slightly to the left (negatively skewed)**. The bulk of the estimates falls in a narrow range around $0.925$ to $0.935$. This strong concentration indicates that the linear model consistently explains a very high proportion of the variance in $\text{tmax}$ across the different bootstrap samples.
+  * **Coefficient of Determination ($\hat{r}^2$):** The distribution of $\hat{r}^2$ is **highly concentrated** and appears **skewed slightly to the left (negatively skewed)**. The bulk of the estimates falls in a narrow range around $0.935$ to $0.945$. This strong concentration indicates that the linear model consistently explains a very high proportion of the variance in $\text{tmax}$ across the different bootstrap samples.
 
-  * **Ratio of Coefficients ($\hat{\beta}_1 / \hat{\beta}_2$):** The distribution of the ratio is **much wider** and appears roughly **symmetrical and bell-shaped**, suggesting a distribution close to normal. The estimates are centered around a value close to $100$. This wider spread, compared to $\hat{r}^2$, reflects greater sampling variability for the ratio of two estimated regression parameters.
+  * **Ratio of Coefficients ($\hat{\beta}_1 / \hat{\beta}_2$):** The distribution of the ratio is **much wider** and appears roughly **symmetrical and bell-shaped**, suggesting a distribution close to normal. The estimates are centered around a value close to $-150$. This wider spread, compared to $\hat{r}^2$, reflects greater sampling variability for the ratio of two estimated regression parameters.
 
 -----
 
@@ -297,13 +297,17 @@ confidence_intervals
 
 | Metric | $2.5\%$ Quantile (Lower Bound) | $97.5\%$ Quantile (Upper Bound) |
 | :--- | :--- | :--- |
-| $\hat{r}^2$ | $\mathbf{0.921}$ | $\mathbf{0.938}$ |
-| $\hat{\beta}_1 / \hat{\beta}_2$ | $\mathbf{87.822}$ | $\mathbf{111.458}$ |
+| $\hat{r}^2$ | $\mathbf{0.935}$ | $\mathbf{0.947}$ |
+| $\hat{\beta}_1 / \hat{\beta}_2$ | $\mathbf{-280.8434}$ | $\mathbf{-125.0654}$ |
 
 **Conclusion:**
 
-  * The **$95\%$ confidence interval for $\hat{r}^2$** is $(\mathbf{0.921}, \mathbf{0.938})$.
-  * The **$95\%$ confidence interval for $\hat{\beta}_1 / \hat{\beta}_2$** is $(\mathbf{87.822}, \mathbf{111.458})$.
+  * The **$95\%$ confidence interval for $\hat{r}^2$** is $(\mathbf{0.935}, \mathbf{0.947})$.
+  * The **$95\%$ confidence interval for $\hat{\beta}_1 / \hat{\beta}_2$** is $(\mathbf{-280.8434}, \mathbf{-125.0654})$.
+  
+
+# Problem 3
+
 
 
 
