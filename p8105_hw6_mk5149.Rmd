@@ -1,0 +1,16 @@
+---
+title: "p8105_hw6_mk5149"
+output: github_document
+date: "2025-11-25"
+author: "Mungyu Kwok"
+---
+
+# Preparation
+Load any necessary libraries for this homework
+```{r, include=FALSE}
+library(tidyverse)
+library(broom)
+```
+
+
+
