@@ -47,4 +47,37 @@ homicides_cleaned |>
   
 ```
 
+## Problem 1 Part 2: Logiestic regression for Baltimore, MD
+For the city of Baltimore, MD, use the `glm` function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race as predictors. 
+Save the output of `glm` as an R object; apply the `broom::tidy` to this object; and obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing male victims to female victims keeping all other variables fixed.
+```{r}
+# Filter data fro Baltimore, MD 
+baltimore_df = homicides_cleaned |>
+  filter(city_state == "Baltimore, MD")
+
+# Fit the logistic regression model
+glm_baltimore = glm(solved ~ victim_age + victim_sex + victim_race, 
+                    data = baltimore_df,
+                    family = binomial)
+
+# Tidy the results
+# Exponentiate to get ORs, extracts the required values
+or_baltimore = tidy(glm_baltimore, conf.int = TRUE, exponentiate = TRUE) |>
+  filter(term == "victim_sexMale") |>
+  select(term, estimate, conf.low, conf.high)
+
+or_baltimore
+```
+The adjusted odds ratio for solving homicides comparing male victims to female victims in Baltimore, MD is approximately $\mathbf{0.426}$, with a $95\%$ confidence interval of $(\mathbf{0.325}, \mathbf{0.558})$. This indicates that the odds of a homicide being solved for male victims are significantly lower than for female victims, controlling for age and race.
+
+```{r}
+
+
+```
+
+
+
+
+
+
 
