@@ -70,8 +70,51 @@ or_baltimore
 ```
 The adjusted odds ratio for solving homicides comparing male victims to female victims in Baltimore, MD is approximately $\mathbf{0.426}$, with a $95\%$ confidence interval of $(\mathbf{0.325}, \mathbf{0.558})$. This indicates that the odds of a homicide being solved for male victims are significantly lower than for female victims, controlling for age and race.
 
+## Problem 1 Part 3:
+Now run `glm` for each of the cities in dataset, and extract the adjusted odds ratio (and CI) for solving homicides comparing male victims to female victims. 
+Do this within a “tidy” pipeline, making use of `purrr::map`, list columns, and unnest as necessary to create a dataframe with estimated ORs and CIs for each city.
 ```{r}
+# Group the data by city_state and nest it
+nested_data = homicides_cleaned |>
+  group_by(city_state) |>
+  nest()
 
+# Define the function to fit GLM and extract OR/CI
+get_male_or = function(df) {
+  # Requires at least 2 levels for sex and race to fit the full model
+  if(n_distinct(df$victim_sex) < 2 | n_distinct(df$victim_race) < 2) {
+    return(NULL)
+  }
+  
+  # Fit the logistic regression model
+  glm_model = glm(solved ~ victim_age + victim_sex + victim_race,
+                  data = df,
+                  family = binomial)
+  
+  # Check for convergence
+  if(!glm_model$converged) {
+    return(NULL)
+  }
+  
+  # Tidy the result and extract the Or for male vs female
+  tidy(glm_model, conf.int = TRUE, exponentiate = TRUE) |>
+    filter(term == "victim_sexMale") |>
+    select(OR = estimate, CI_low = conf.low, CI_high = conf.high)
+}
+
+# Apply the function across all nested dataframes and unnest the results
+all_cities_or_ci = nested_data |>
+  # Use map to apply the function to each city's data
+  mutate(or_ci = map(data, get_male_or)) |>
+  # Remove rows where the model failed to fit (or_ci = Null)
+  filter(!map_lgl(or_ci, is.null)) |>
+  # Unnest the ORs/CIs into a single dataframe
+  unnest(or_ci) |>
+  select(city_state, OR, CI_low, CI_high) |>
+  # Sort by OR for plotting
+  arrange(desc(OR))
+
+all_cities_or_ci
 
 ```
 
