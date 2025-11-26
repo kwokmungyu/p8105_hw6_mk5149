@@ -12,5 +12,39 @@ library(tidyverse)
 library(broom)
 ```
 
+# Problem 1
+## Problem 1 Part 1: Data loading and cleaning
+The analysis begins by loading the raw data `homicide-data.csv`. The data is cleaned according to the problem specifications: creating a `city_state` variable, creating a binary solved variable indicating whether the homicide is solved, omitting specified cities (Dallas, TX; Phoenix, AZ; and Kansas City, MO; Tulsa, AL), limiting to `White` and `Black` victims, and ensuring `victim_age` is numeric.
+
+```{r}
+# Load the data
+homicides = read_csv("data/homicide-data.csv") 
+
+homicides_cleaned = homicides |>
+  # Step 1: create city_state variable
+  mutate(city_state = paste(city, state, sep = ", "),
+         # Step 2: create a binary solved variable: 1 for closed by arrest, 0 for unresoved
+         solved = if_else(disposition == "Closed by arrest", 1, 0),
+         # Step 3: ensure victim_age is numerice
+         victim_age = as.numeric(victim_age)
+  ) |>
+  # Step 4: omit specified cities
+  filter(!city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL")) |>
+  # Step 5: limit to white or black victims only
+  filter(victim_race %in% c("White", "Black")) |>
+  # Step 6: remove rows with missing age
+  drop_na(victim_age) |>
+  # Step 7: Convert victim_sex to a factor, setting 'Female' as the reference level
+  mutate(victim_sex = fct_relevel(victim_sex, "Female"))
+
+# Check "solved" binary variable
+homicides_cleaned |> 
+  pull(solved) |> 
+  unique()
+
+homicides_cleaned |>
+  head()
+  
+```
 
 
